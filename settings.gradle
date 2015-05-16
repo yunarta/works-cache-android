@@ -1,1 +1,5 @@
-include ':library', ':sample'
+include ':works-http-cache'
+project(':works-http-cache').projectDir = new File('library')
+
+include ':works-http-cache-sample'
+project(':works-http-cache-sample').projectDir = new File('sample')

@@ -6,11 +6,14 @@ android {
 
     defaultConfig {
         applicationId "com.mobilesolutionworks.android.httpcache.sample"
-        minSdkVersion 8
+        minSdkVersion 11
         targetSdkVersion 22
         versionCode 1
         versionName "1.0"
+
+        buildConfigField "String", "LOGTAG", '"http-cache"'
     }
+
     buildTypes {
         release {
             minifyEnabled false
@@ -22,4 +25,6 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:22.1.1'
+    compile 'com.loopj.android:android-async-http:1.4.7'
+    compile project(':works-http-cache')
 }
