@@ -39,7 +39,7 @@ public class WorksCacheFileStore implements WorksCacheStore {
                     out.write(buffer, 0, read);
                 }
 
-                return new WorksCache(out.toByteArray());
+                return new WorksCache(out.toByteArray(), file.lastModified());
             } catch (IOException e) {
                 return null;
             } finally {
@@ -78,6 +78,8 @@ public class WorksCacheFileStore implements WorksCacheStore {
                 // e.printStackTrace();
             }
         }
+
+        file.setLastModified(cache.time());
     }
 
     private String md5(String text) {

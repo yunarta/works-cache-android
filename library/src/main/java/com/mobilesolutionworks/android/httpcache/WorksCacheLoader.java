@@ -1,8 +1,5 @@
 package com.mobilesolutionworks.android.httpcache;
 
-import android.content.Context;
-import android.util.TimingLogger;
-
 import com.mobilesolutionworks.android.httpcache.config.WorksCacheConfig;
 
 import bolts.Continuation;
@@ -13,78 +10,81 @@ import bolts.Task;
  */
 public class WorksCacheLoader {
 
-    TimingLogger mTimingLogger;
-
-    Context mContext;
-
     Task<WorksCache> mTask;
 
     Task<WorksCache> mWorker;
 
-    String mData;
-
     String mPath;
 
-    public WorksCacheLoader(Context context) {
-        mContext = context;
+    long mExpire;
 
+    public WorksCacheLoader() {
         mWorker = mTask = Task.forResult(null);
-
-        mTimingLogger = new TimingLogger("yunarta", "cache");
+        mExpire = WorksCacheConfig.getInstance().getExpire();
     }
 
-    public WorksCacheLoader loadCache(final String path) {
+    public WorksCacheLoader from(final String path) {
+        return from(path, -1);
+    }
+
+    public WorksCacheLoader from(final String path, final long expire) {
         mPath = path;
-        mTimingLogger.addSplit("load cache");
-        mWorker = mTask.continueWith(new Continuation<WorksCache, WorksCache>() {
+        mExpire = expire != -1 ? mExpire : expire;
+
+        mWorker = mWorker.continueWith(new Continuation<WorksCache, WorksCache>() {
             @Override
             public WorksCache then(Task<WorksCache> task) throws Exception {
                 // attempt to load data cache
                 WorksCache cache = WorksCacheConfig.getInstance().getStore().load(path);
-                mTimingLogger.addSplit("cache loaded");
-                if (cache != null) {
+
+                if (cache != null && (expire == -1 || cache.time() - System.currentTimeMillis() > expire)) {
+                    mTask = Task.forResult(cache);
                     return cache;
-                } else {
-                    throw new RuntimeException();
                 }
+
+                return null;
             }
         });
 
         return this;
     }
 
-    public WorksCacheLoader validateCache(final Continuation<WorksCache, Task<WorksCache>> validate) {
-        mTimingLogger.addSplit("validated cache");
-        mWorker = mWorker.onSuccessTask(validate).continueWithTask(new Continuation<WorksCache, Task<WorksCache>>() {
-            @Override
-            public Task<WorksCache> then(Task<WorksCache> task) throws Exception {
-                mTimingLogger.addSplit("after validate cache");
-                return task;
-            }
-        });
+    public WorksCacheLoader validate(final Continuation<WorksCache, WorksCache> validate) {
+        mWorker = mWorker.onSuccess(validate);
         return this;
     }
 
-    public WorksCacheLoader withLoadTask(final Continuation<WorksCacheLoader, Task<WorksCache>> load) {
+    public WorksCacheLoader orLoad(final Continuation<WorksCache, Task<WorksCache>> load) {
         mWorker = mWorker.continueWithTask(new Continuation<WorksCache, Task<WorksCache>>() {
             @Override
             public Task<WorksCache> then(Task<WorksCache> task) throws Exception {
-                mTimingLogger.addSplit("load task");
-                if (task.isFaulted()) {
-                    return Task.forResult(WorksCacheLoader.this)
-                            .continueWithTask(load)
-                            .onSuccess(new Continuation<WorksCache, WorksCache>() {
-                                @Override
-                                public WorksCache then(Task<WorksCache> task) throws Exception {
-                                    mTimingLogger.addSplit("after load task");
-                                    WorksCache response = task.getResult();
-                                    WorksCacheConfig.getInstance().getStore().store(mPath, response);
+                WorksCache result = task.getResult();
+                if (result == null || task.isFaulted()) {
+                    return task.continueWithTask(load).onSuccess(new Continuation<WorksCache, WorksCache>() {
+                        @Override
+                        public WorksCache then(Task<WorksCache> task) throws Exception {
+                            WorksCache response = task.getResult();
+                            response.mTime = System.currentTimeMillis() + mExpire;
+                            WorksCacheConfig.getInstance().getStore().store(mPath, response);
 
-                                    return response;
+                            return response;
+                        }
+                    }).continueWith(new Continuation<WorksCache, WorksCache>() {
+                        @Override
+                        public WorksCache then(Task<WorksCache> task) throws Exception {
+                            if (task.isFaulted()) {
+                                Exception exception = task.getError();
+                                if (exception instanceof UseExpiredWorkCache) {
+                                    return mTask.getResult();
+                                } else {
+                                    throw exception;
                                 }
-                            });
+                            } else {
+                                return task.getResult();
+                            }
+                        }
+                    });
                 } else {
-                    mTimingLogger.addSplit("load from cache");
                     return task;
                 }
             }
@@ -93,28 +93,12 @@ public class WorksCacheLoader {
         return this;
     }
 
-    public void consume(Continuation<WorksCacheLoader, Void> finished) {
-        mWorker.continueWith(new Continuation<WorksCache, WorksCacheLoader>() {
-            @Override
-            public WorksCacheLoader then(Task<WorksCache> task) throws Exception {
-                mTimingLogger.addSplit("consume task");
-                WorksCacheLoader cache = WorksCacheLoader.this;
-                cache.mData = task.getResult().toString();
-
-                return cache;
-            }
-        }).continueWith(finished)
-                .continueWith(new Continuation<Void, Object>() {
-                    @Override
-                    public Object then(Task<Void> task) throws Exception {
-                        mTimingLogger.addSplit("task finished");
-                        mTimingLogger.dumpToLog();
-                        return null;
-                    }
-                });
+    public Task<WorksCache> consumeWithTask(Continuation<WorksCache, WorksCache> finished) {
+        return mWorker.continueWith(finished);
     }
 
-    public String getData() {
-        return mData;
+    public WorksCacheLoader consume(Continuation<WorksCache, WorksCache> finished) {
+        mWorker = mWorker.continueWith(finished);
+        return this;
     }
 }

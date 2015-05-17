@@ -61,7 +61,7 @@ public class WorksCacheSQLStore implements WorksCacheStore {
         ContentValues values = new ContentValues();
         values.put("uri", path);
         values.put("data", cache.data());
-        values.put("time", System.currentTimeMillis() + 10000);
+        values.put("time", cache.time());
 
         mDatabase.insert(TABLE_NAME, null, values);
     }

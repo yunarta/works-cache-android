@@ -15,6 +15,8 @@ public class WorksCacheConfig {
 
     protected WorksCacheStore mStore;
 
+    protected long expire;
+
     public static WorksCacheConfig getInstance() {
         if (sInstance == null) {
             sInstance = new WorksCacheConfig();
@@ -37,5 +39,13 @@ public class WorksCacheConfig {
 
     public WorksCacheStore getStore() {
         return mStore;
+    }
+
+    public void setExpire(long expire) {
+        this.expire = expire;
+    }
+
+    public long getExpire() {
+        return expire;
     }
 }
