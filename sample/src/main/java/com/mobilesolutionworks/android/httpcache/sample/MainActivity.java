@@ -4,10 +4,10 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 
-import com.mobilesolutionworks.android.httpcache.HttpCache;
-import com.mobilesolutionworks.android.httpcache.HttpCacheResponse;
-import com.mobilesolutionworks.android.httpcache.TextHttpCacheResponse;
+import com.mobilesolutionworks.android.httpcache.WorksCacheLoader;
+import com.mobilesolutionworks.android.httpcache.WorksCache;
 import com.mobilesolutionworks.android.managedhttp.ABC;
 import com.mobilesolutionworks.android.managedhttp.ManagedHttpRequest;
 
@@ -22,15 +22,24 @@ public class MainActivity extends Activity {
 
     private SaveFragment fragment;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        HttpCache cache = new HttpCache(this);
-        cache.loadCache("/data3").withLoadTask(new Continuation<HttpCache, Task<HttpCacheResponse>>() {
+    public void testUpdate(View view) {
+        WorksCacheLoader cache = new WorksCacheLoader(this);
+        cache.loadCache("/data3").validateCache(new Continuation<WorksCache, Task<WorksCache>>() {
             @Override
-            public Task<HttpCacheResponse> then(Task<HttpCache> task) throws Exception {
+            public Task<WorksCache> then(Task<WorksCache> task) throws Exception {
+                WorksCache result = task.getResult();
+                if (result.time() > System.currentTimeMillis()) {
+                    Log.d("yunarta", "cache validated");
+                    return Task.forResult(result);
+                } else {
+                    Log.d("yunarta", "cache invalidated");
+                    return Task.forError(new RuntimeException());
+                }
+            }
+        }).withLoadTask(new Continuation<WorksCacheLoader, Task<WorksCache>>() {
+            @Override
+            public Task<WorksCache> then(Task<WorksCacheLoader> task) throws Exception {
+                Log.d("yunarta", "load task");
                 ManagedHttpRequest request = new ManagedHttpRequest();
                 request.local = request.remote = "http://mobilesandbox.cloudapp.net/rapp/dump.php";
 
@@ -39,42 +48,30 @@ public class MainActivity extends Activity {
                 request.param.putString("b", "2");
                 request.param.putString("c", "3");
 
-                return new ABC(getApplication(), request).execute().continueWithTask(new Continuation<ABC.HttpCache, Task<HttpCacheResponse>>() {
+                return new ABC(getApplication(), request).execute().continueWithTask(new Continuation<ABC.HttpCache, Task<WorksCache>>() {
                     @Override
-                    public Task<HttpCacheResponse> then(Task<ABC.HttpCache> task) throws Exception {
+                    public Task<WorksCache> then(Task<ABC.HttpCache> task) throws Exception {
                         ABC.HttpCache result = task.getResult();
 
-                        return Task.forResult(new TextHttpCacheResponse(result.content)).cast();
+                        return Task.forResult(new WorksCache(result.content.getBytes())).cast();
                     }
                 });
-
-//                final Task<HttpCacheResponse>.TaskCompletionSource source = Task.create();
-//
-//                AsyncHttpClient client = new AsyncHttpClient();
-//                client.get("http://mobilesandbox.cloudapp.net/rapp/stage_info.php", new TextHttpResponseHandler() {
-//                    @Override
-//                    public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
-//                        source.trySetError(new RuntimeException(throwable));
-//                    }
-//
-//                    @Override
-//                    public void onSuccess(int statusCode, Header[] headers, String responseString) {
-//                        source.trySetResult(new TextHttpCacheResponse(responseString));
-//                    }
-//                });
-//
-//                return source.getTask();
             }
-        }).consume(new Continuation<HttpCache, Void>() {
+        }).consume(new Continuation<WorksCacheLoader, Void>() {
             @Override
-            public Void then(Task<HttpCache> task) throws Exception {
-                HttpCache result = task.getResult();
+            public Void then(Task<WorksCacheLoader> task) throws Exception {
+                WorksCacheLoader result = task.getResult();
                 Log.d("yunarta", "consumed result = " + result.getData());
 
                 return null;
             }
         });
+    }
 
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
 //        if (savedInstanceState == null) {
 //            fragment = new SaveFragment();
