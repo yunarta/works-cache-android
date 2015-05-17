@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.mobilesolutionworks.android.httpcache.sample">
 
-    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -14,6 +14,28 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <provider
+            android:name="com.mobilesolutionworks.android.managedhttp.ManagedHttpContentProvider"
+            android:authorities="com.mobilesolutionworks.httpcache"
+            android:exported="false" />
+        <service
+            android:name=".ManagedLoopHttpService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.mobilesolutionworks.httpcache.intent.GET_DATA" />
+            </intent-filter>
+        </service>
+
+        <meta-data
+            android:name="works.managedhttp.service.class"
+            android:value="com.mobilesolutionworks.android.httpcache.sample.ManagedLoopHttpService" />
+        <meta-data
+            android:name="works.managedhttp.authority"
+            android:value="com.mobilesolutionworks.httpcache" />
+        <meta-data
+            android:name="works.managedhttp.service.get"
+            android:value="com.mobilesolutionworks.httpcache.intent.GET_DATA" />
     </application>
 
 </manifest>

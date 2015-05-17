@@ -1,6 +1,5 @@
 package com.mobilesolutionworks.android.httpcache;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.text.TextUtils;
@@ -11,7 +10,6 @@ import bolts.Task;
 /**
  * Created by yunarta on 17/5/15.
  */
-@SuppressLint("LongLogTag")
 public class HttpCache {
 
     Context mContext;
@@ -22,20 +20,22 @@ public class HttpCache {
 
     String mData;
 
+    String mPath;
+
     public HttpCache(Context context) {
         mContext = context;
 
-        mTask = Task.forResult(null);
-        mWorker = mTask;
+        mWorker = mTask = Task.forResult(null);
     }
 
     public HttpCache loadCache(String path) {
+        mPath = path;
         mWorker = mTask.continueWith(new Continuation<HttpCacheResponse, HttpCacheResponse>() {
             @Override
             public HttpCacheResponse then(Task<HttpCacheResponse> task) throws Exception {
                 // attempt to load data cache
                 SharedPreferences preferences = mContext.getSharedPreferences("test", Context.MODE_PRIVATE);
-                String data = preferences.getString("data", null);
+                String data = preferences.getString(mPath, null);
 
                 if (!TextUtils.isEmpty(data)) {
                     return new TextHttpCacheResponse(data);
@@ -61,8 +61,10 @@ public class HttpCache {
                                     HttpCacheResponse response = task.getResult();
 
                                     if (response instanceof TextHttpCacheResponse) {
-                                        SharedPreferences preferences = mContext.getSharedPreferences("test", Context.MODE_PRIVATE);
-                                        preferences.edit().putString("data", response.toString()).commit();
+                                        if (mPath != null) {
+                                            SharedPreferences preferences = mContext.getSharedPreferences("test", Context.MODE_PRIVATE);
+                                            preferences.edit().putString(mPath, response.toString()).commit();
+                                        }
                                     }
 
                                     return response;
