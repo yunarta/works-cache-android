@@ -37,15 +37,17 @@ public class WorksCacheLoader {
                 // attempt to load data cache
                 WorksCache cache = WorksCacheConfig.getInstance().getStore().load(path);
 
-                if (cache != null && (expire == -1 || cache.time() - System.currentTimeMillis() > expire)) {
+                if (cache != null) {
                     mTask = Task.forResult(cache);
-                    return cache;
+                    if (expire == -1 || cache.time() - System.currentTimeMillis() > expire) {
+                        return cache;
+                    }
                 }
 
                 return null;
             }
         });
-
+        
         return this;
     }
 

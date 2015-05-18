@@ -2,7 +2,6 @@ package com.mobilesolutionworks.android.httpcache.sample;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 
 import com.loopj.android.http.AsyncHttpClient;
@@ -21,6 +20,12 @@ import bolts.Task;
  * Created by yunarta on 16/5/15.
  */
 public class SampleActivity extends Activity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+    }
 
     public void testUpdateLoopJ(View view) {
         WorksCacheLoader cache = new WorksCacheLoader();
@@ -49,7 +54,6 @@ public class SampleActivity extends Activity {
                     @Override
                     public void onSuccess(int statusCode, Header[] headers, String responseString) {
                         source.trySetResult(new WorksCache(responseString.getBytes()));
-
                     }
 
                     @Override
@@ -64,23 +68,8 @@ public class SampleActivity extends Activity {
             @Override
             public WorksCache then(Task<WorksCache> task) throws Exception {
                 WorksCache result = task.getResult();
-                Log.d("yunarta", "result = " + result);
                 return null;
             }
         });
-    }
-
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-//        if (savedInstanceState == null) {
-//            fragment = new SaveFragment();
-//            getFragmentManager().beginTransaction().add(fragment, "save").commit();
-//        } else {
-//            fragment = (SaveFragment) getFragmentManager().findFragmentByTag("save");
-//        }
     }
 }
