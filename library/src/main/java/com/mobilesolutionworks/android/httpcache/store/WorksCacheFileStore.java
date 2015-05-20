@@ -57,6 +57,18 @@ public class WorksCacheFileStore implements WorksCacheStore {
     }
 
     @Override
+    public void deleteCache(String path) {
+        File root = WorksCacheConfig.getInstance().getContext().getFilesDir();
+
+        File dir = new File(root, "works-cache");
+        dir.mkdirs();
+
+
+        File file = new File(dir, md5(path));
+        file.delete();
+    }
+
+    @Override
     public void store(String path, WorksCache cache) throws IOException {
         File root = WorksCacheConfig.getInstance().getContext().getFilesDir();
 

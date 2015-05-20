@@ -11,5 +11,7 @@ public interface WorksCacheStore {
 
     WorksCache load(String path);
 
+    void deleteCache(String path);
+
     void store(String path, WorksCache cache) throws IOException;
 }

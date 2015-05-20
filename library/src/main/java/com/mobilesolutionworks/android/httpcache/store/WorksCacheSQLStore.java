@@ -18,6 +18,8 @@ public class WorksCacheSQLStore implements WorksCacheStore {
 
     private static final String TABLE_NAME = "works_cache";
 
+    private final Object LOCK = new Object();
+
     private SQLiteDatabase mDatabase;
 
     private String mDatabaseName;
@@ -32,23 +34,36 @@ public class WorksCacheSQLStore implements WorksCacheStore {
             mDatabase = new SQLiteOpenHelperImpl(WorksCacheConfig.getInstance().getContext(), mDatabaseName).getWritableDatabase();
         }
 
-        Cursor cursor = mDatabase.query(TABLE_NAME, new String[]{"uri", "data", "time"}, "uri = ?", new String[]{path}, null, null, null);
+        Cursor cursor;
+        synchronized (LOCK) {
+            cursor = mDatabase.query(TABLE_NAME, new String[]{"uri", "data", "time"}, "uri = ?", new String[]{path}, null, null, null);
+            try {
+                if (cursor.moveToNext()) {
+                    byte[] blob;
+                    long time;
 
-        try {
-            if (cursor.moveToNext()) {
-                byte[] blob;
-                long time;
+                    cursor.getString(0);
+                    blob = cursor.getBlob(1);
+                    time = cursor.getLong(2);
 
-                cursor.getString(0);
-                blob = cursor.getBlob(1);
-                time = cursor.getLong(2);
+                    return new WorksCache(blob, time);
+                }
 
-                return new WorksCache(blob, time);
+                return null;
+            } finally {
+                cursor.close();
             }
+        }
+    }
 
-            return null;
-        } finally {
-            cursor.close();
+    @Override
+    public void deleteCache(String path) {
+        if (mDatabase == null) {
+            mDatabase = new SQLiteOpenHelperImpl(WorksCacheConfig.getInstance().getContext(), mDatabaseName).getWritableDatabase();
+        }
+
+        synchronized (LOCK) {
+            mDatabase.delete(TABLE_NAME, "uri = ?", new String[]{path});
         }
     }
 
@@ -63,7 +78,9 @@ public class WorksCacheSQLStore implements WorksCacheStore {
         values.put("data", cache.data());
         values.put("time", cache.time());
 
-        mDatabase.insert(TABLE_NAME, null, values);
+        synchronized (LOCK) {
+            mDatabase.insert(TABLE_NAME, null, values);
+        }
     }
 
     private class SQLiteOpenHelperImpl extends SQLiteOpenHelper {

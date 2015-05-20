@@ -10,6 +10,7 @@ import com.loopj.android.http.TextHttpResponseHandler;
 import com.mobilesolutionworks.android.httpcache.UseExpiredWorkCache;
 import com.mobilesolutionworks.android.httpcache.WorksCache;
 import com.mobilesolutionworks.android.httpcache.WorksCacheLoader;
+import com.mobilesolutionworks.android.httpcache.config.WorksCacheConfig;
 
 import org.apache.http.Header;
 
@@ -28,6 +29,7 @@ public class SampleActivity extends Activity {
     }
 
     public void testUpdateLoopJ(View view) {
+        WorksCacheConfig.getInstance().getStore().deleteCache("/data3");
         WorksCacheLoader cache = new WorksCacheLoader();
         cache.from("/data3").validate(new Continuation<WorksCache, WorksCache>() {
             @Override
