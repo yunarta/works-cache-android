@@ -1,2 +1,2 @@
-# works-http-cache-android
-New works-http-cache for Android
+# works-cache-android
+New simple caching library for storing anything into data base or file
